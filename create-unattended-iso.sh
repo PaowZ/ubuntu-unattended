@@ -4,6 +4,7 @@
 tmp=`pwd`/iso
 hostname="ubuntu"
 currentuser="$( whoami)"
+target_folder="/mnt/d/tmp/iso"
 
 # create destination folder for iso
 mkdir -p $tmp
@@ -206,6 +207,8 @@ mkdir -p $tmp
 mkdir -p $tmp/iso_org
 mkdir -p $tmp/iso_new
 
+chown -R $USER:$USER $tmp
+
 # mount the image
 if grep -qs $tmp/iso_org /proc/mounts ; then
     echo " image is already mounted, continue"
@@ -224,7 +227,7 @@ echo en > $tmp/iso_new/isolinux/lang
 
 #16.04
 #taken from https://github.com/fries/prepare-ubuntu-unattended-install-iso/blob/master/make.sh
-sed -i -r 's/timeout\s+[0-9]+/timeout 1/g' $tmp/iso_new/isolinux/isolinux.cfg
+sudo sed -i -r 's/timeout\s+[0-9]+/timeout 1/g' $tmp/iso_new/isolinux/isolinux.cfg
 
 
 # set late command
@@ -238,7 +241,7 @@ cp -rT $tmp/$seed_file $tmp/iso_new/preseed/$seed_file
 # include firstrun script
 echo "
 # setup firstrun script
-d-i preseed/late_command                                    string      $late_command" >> $tmp/iso_new/preseed/$seed_file
+d-i preseed/late_command string $late_command" >> $tmp/iso_new/preseed/$seed_file
 
 # generate the password hash
 pwhash=$(echo $password | mkpasswd -s -m sha-512)
@@ -246,32 +249,32 @@ pwhash=$(echo $password | mkpasswd -s -m sha-512)
 # update the seed file to reflect the users' choices
 # the normal separator for sed is /, but both the password and the timezone may contain it
 # so instead, I am using @
-sed -i "s@{{username}}@$username@g" $tmp/iso_new/preseed/$seed_file
-sed -i "s@{{pwhash}}@$pwhash@g" $tmp/iso_new/preseed/$seed_file
-sed -i "s@{{hostname}}@$hostname@g" $tmp/iso_new/preseed/$seed_file
-sed -i "s@{{timezone}}@$timezone@g" $tmp/iso_new/preseed/$seed_file
+sudo sed -i "s@{{username}}@$username@g" $tmp/iso_new/preseed/$seed_file
+sudo sed -i "s@{{pwhash}}@$pwhash@g" $tmp/iso_new/preseed/$seed_file
+sudo sed -i "s@{{hostname}}@$hostname@g" $tmp/iso_new/preseed/$seed_file
+sudo sed -i "s@{{timezone}}@$timezone@g" $tmp/iso_new/preseed/$seed_file
 
 # calculate checksum for seed file
 seed_checksum=$(md5sum $tmp/iso_new/preseed/$seed_file)
 
 # add the autoinstall option to the menu
-sed -i "/label install/ilabel autoinstall\n\
+sudo sed -i "/label install/ilabel autoinstall\n\
   menu label ^Autoinstall NETSON Ubuntu $TYPE\n\
   kernel /install/vmlinuz\n\
   append file=/cdrom/preseed/ubuntu-$TYPE.seed initrd=/install/initrd.gz auto=true priority=high preseed/file=/cdrom/preseed/netson.seed preseed/file/checksum=$seed_checksum --" $tmp/iso_new/isolinux/txt.cfg
 
 # add the autoinstall option to the menu for USB Boot
-sed -i '/set timeout=30/amenuentry "Autoinstall Netson Ubuntu $TYPE" {\n\	set gfxpayload=keep\n\	linux /install/vmlinuz append file=/cdrom/preseed/ubuntu-$TYPE.seed initrd=/install/initrd.gz auto=true priority=high preseed/file=/cdrom/preseed/netson.seed quiet ---\n\	initrd	/install/initrd.gz\n\}' $tmp/iso_new/boot/grub/grub.cfg
-sed -i -r 's/timeout=[0-9]+/timeout=1/g' $tmp/iso_new/boot/grub/grub.cfg
+sudo sed -i '/set timeout=30/amenuentry "Autoinstall Netson Ubuntu $TYPE" {\n\	set gfxpayload=keep\n\	linux /install/vmlinuz append file=/cdrom/preseed/ubuntu-$TYPE.seed initrd=/install/initrd.gz auto=true priority=high preseed/file=/cdrom/preseed/netson.seed quiet ---\n\	initrd	/install/initrd.gz\n\}' $tmp/iso_new/boot/grub/grub.cfg
+sudo sed -i -r 's/timeout=[0-9]+/timeout=1/g' $tmp/iso_new/boot/grub/grub.cfg
 
 echo " creating the remastered iso"
 cd $tmp/iso_new
-(mkisofs -D -r -V "NETSON_UBUNTU" -cache-inodes -J -l -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -o $tmp/$new_iso_name . > /dev/null 2>&1) &
+(sudo mkisofs -D -r -V "NETSON_UBUNTU" -cache-inodes -J -l -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -o $target_folder/$new_iso_name . > /dev/null 2>&1) &
 spinner $!
 
 # make iso bootable (for dd'ing to  USB stick)
 if [[ $bootable == "yes" ]] || [[ $bootable == "y" ]]; then
-    isohybrid $tmp/$new_iso_name
+    isohybrid $target_folder/$new_iso_name
 fi
 
 # cleanup
@@ -284,7 +287,7 @@ rm -rf $tmphtml
 # print info to user
 echo " -----"
 echo " finished remastering your ubuntu iso file"
-echo " the new file is located at: $tmp/$new_iso_name"
+echo " the new file is located at: $target_folder/$new_iso_name"
 echo " your username is: $username"
 echo " your password is: $password"
 echo " your hostname is: $hostname"
