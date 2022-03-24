@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 
 # file names & paths
-tmp="$HOME"  # destination folder to store the final iso file
+tmp=`pwd`/iso
 hostname="ubuntu"
 currentuser="$( whoami)"
+
+# create destination folder for iso
+mkdir -p $tmp
 
 # define spinner function for slow tasks
 # courtesy of http://fitnr.com/showing-a-bash-spinner.html
