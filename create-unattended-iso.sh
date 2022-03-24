@@ -81,6 +81,9 @@ wget -O $tmphtml 'http://releases.ubuntu.com/' >/dev/null 2>&1
 WORKFILE=www.list
 EXCLUDE_LIST='torrent|zsync|live'
 COUNTER=1
+#TYPE=server
+TYPE=desktop
+
 if [ ! -z $1 ] && [ $1 == "rebuild" ]; then
     rm -f ${WORKFILE}
 fi
@@ -90,11 +93,11 @@ if [ ! -e ${WORKFILE} ]; then
         TITLE=$(wget -qO - http://cdimage.ubuntu.com/releases/${version}/release | grep h1 | sed s'/^ *//g' | sed s'/^.*\(Ubuntu.*\).*$/\1/' | sed s'|</h1>||g')
         CODE=$(echo ${TITLE} | cut -d "(" -f2 | tr -d ")")
         URL=http://releases.ubuntu.com/${version}/
-        wget -qO - ${URL} | grep server | grep amd64 | grep -v "${EXCLUDE_LIST}" > /dev/null
+        wget -qO - ${URL} | grep $TYPE | grep amd64 | grep -v "${EXCLUDE_LIST}" > /dev/null
         if [ $? -ne 0 ] ; then
             URL=http://cdimage.ubuntu.com/releases/${version}/release/
         fi
-        FILE=$(wget -qO - ${URL} | grep server-amd64 | grep -o ubuntu.*.iso | grep -v "${EXCLUDE_LIST}" | grep ">" | cut -d ">" -f2 | sort -u)
+        FILE=$(wget -qO - ${URL} | grep  $TYPE-amd64 | grep -o ubuntu.*.iso | grep -v "${EXCLUDE_LIST}" | grep ">" | cut -d ">" -f2 | sort -u)
         FILE=$(echo ${FILE} | tr "\n" " " | tr "\r" " ")
         if [[ ! -z ${FILE} ]] && [[ ! -z ${TITLE} ]]; then
             echo ${TITLE}
@@ -126,7 +129,7 @@ done
 
 download_file=$(grep -w ^$ubver ${WORKFILE} | awk '{print $4}')           # filename of the iso to be downloaded
 download_location=$(grep -w ^$ubver ${WORKFILE} | awk '{print $3}')     # location of the file to be downloaded
-new_iso_name="ubuntu-$(grep -w ^$ubver ${WORKFILE} | awk '{print $2}')-server-amd64-unattended.iso" # filename of the new iso file to be created
+new_iso_name="ubuntu-$(grep -w ^$ubver ${WORKFILE} | awk '{print $2}')-$TYPE-amd64-unattended.iso" # filename of the new iso file to be created
 
 if [ -f /etc/timezone ]; then
   timezone=`cat /etc/timezone`
@@ -253,12 +256,12 @@ seed_checksum=$(md5sum $tmp/iso_new/preseed/$seed_file)
 
 # add the autoinstall option to the menu
 sed -i "/label install/ilabel autoinstall\n\
-  menu label ^Autoinstall NETSON Ubuntu Server\n\
+  menu label ^Autoinstall NETSON Ubuntu $TYPE\n\
   kernel /install/vmlinuz\n\
-  append file=/cdrom/preseed/ubuntu-server.seed initrd=/install/initrd.gz auto=true priority=high preseed/file=/cdrom/preseed/netson.seed preseed/file/checksum=$seed_checksum --" $tmp/iso_new/isolinux/txt.cfg
+  append file=/cdrom/preseed/ubuntu-$TYPE.seed initrd=/install/initrd.gz auto=true priority=high preseed/file=/cdrom/preseed/netson.seed preseed/file/checksum=$seed_checksum --" $tmp/iso_new/isolinux/txt.cfg
 
 # add the autoinstall option to the menu for USB Boot
-sed -i '/set timeout=30/amenuentry "Autoinstall Netson Ubuntu Server" {\n\	set gfxpayload=keep\n\	linux /install/vmlinuz append file=/cdrom/preseed/ubuntu-server.seed initrd=/install/initrd.gz auto=true priority=high preseed/file=/cdrom/preseed/netson.seed quiet ---\n\	initrd	/install/initrd.gz\n\}' $tmp/iso_new/boot/grub/grub.cfg
+sed -i '/set timeout=30/amenuentry "Autoinstall Netson Ubuntu $TYPE" {\n\	set gfxpayload=keep\n\	linux /install/vmlinuz append file=/cdrom/preseed/ubuntu-$TYPE.seed initrd=/install/initrd.gz auto=true priority=high preseed/file=/cdrom/preseed/netson.seed quiet ---\n\	initrd	/install/initrd.gz\n\}' $tmp/iso_new/boot/grub/grub.cfg
 sed -i -r 's/timeout=[0-9]+/timeout=1/g' $tmp/iso_new/boot/grub/grub.cfg
 
 echo " creating the remastered iso"
