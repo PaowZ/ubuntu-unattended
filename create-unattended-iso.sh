@@ -173,10 +173,11 @@ if [[ ! -f $tmp/$download_file ]]; then
 fi
 
 # download netson seed file
-seed_file="netson.seed"
+seed_file="vince.seed"
 if [[ ! -f $tmp/$seed_file ]]; then
-    echo -n " downloading $seed_file: "
-    download "https://raw.githubusercontent.com/netson/ubuntu-unattended/master/$seed_file"
+    #echo -n " downloading $seed_file: "
+    #download "https://raw.githubusercontent.com/netson/ubuntu-unattended/master/$seed_file"
+    cp ../$seed_file .
 fi
 
 # install required packages
@@ -235,7 +236,7 @@ sudo sed -i -r 's/timeout\s+[0-9]+/timeout 1/g' $tmp/iso_new/isolinux/isolinux.c
    late_command="chroot /target curl -L -o /home/$username/start.sh https://raw.githubusercontent.com/netson/ubuntu-unattended/master/start.sh ;\
      chroot /target chmod +x /home/$username/start.sh ;"
 
-# copy the netson seed file to the iso
+# copy the seed file to the iso
 cp -rT $tmp/$seed_file $tmp/iso_new/preseed/$seed_file
 
 # include firstrun script
@@ -261,10 +262,10 @@ seed_checksum=$(md5sum $tmp/iso_new/preseed/$seed_file)
 sudo sed -i "/label install/ilabel autoinstall\n\
   menu label ^Autoinstall NETSON Ubuntu $TYPE\n\
   kernel /install/vmlinuz\n\
-  append file=/cdrom/preseed/ubuntu-$TYPE.seed initrd=/install/initrd.gz auto=true priority=high preseed/file=/cdrom/preseed/netson.seed preseed/file/checksum=$seed_checksum --" $tmp/iso_new/isolinux/txt.cfg
+  append file=/cdrom/preseed/ubuntu-$TYPE.seed initrd=/install/initrd.gz auto=true priority=high preseed/file=/cdrom/preseed/$seed_file preseed/file/checksum=$seed_checksum --" $tmp/iso_new/isolinux/txt.cfg
 
 # add the autoinstall option to the menu for USB Boot
-sudo sed -i '/set timeout=30/amenuentry "Autoinstall Netson Ubuntu $TYPE" {\n\	set gfxpayload=keep\n\	linux /install/vmlinuz append file=/cdrom/preseed/ubuntu-$TYPE.seed initrd=/install/initrd.gz auto=true priority=high preseed/file=/cdrom/preseed/netson.seed quiet ---\n\	initrd	/install/initrd.gz\n\}' $tmp/iso_new/boot/grub/grub.cfg
+sudo sed -i '/set timeout=30/amenuentry "Autoinstall Netson Ubuntu $TYPE" {\n\	set gfxpayload=keep\n\	linux /install/vmlinuz append file=/cdrom/preseed/ubuntu-$TYPE.seed initrd=/install/initrd.gz auto=true priority=high preseed/file=/cdrom/preseed/$seed_file.seed quiet ---\n\	initrd	/install/initrd.gz\n\}' $tmp/iso_new/boot/grub/grub.cfg
 sudo sed -i -r 's/timeout=[0-9]+/timeout=1/g' $tmp/iso_new/boot/grub/grub.cfg
 
 echo " creating the remastered iso"
